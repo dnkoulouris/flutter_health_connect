@@ -34,13 +34,16 @@ class SleepSessionRecord extends IntervalRecord {
   })  : metadata = metadata ?? Metadata.empty(),
         assert(startTime.isBefore(endTime)) {
     if (stages.isNotEmpty) {
-      final List<SleepStage> sortedStages = stages
+      final List<SleepStage> sortedStages = List.from(stages)
         ..sort((a, b) => a.startTime.compareTo(b.startTime));
       for (int i = 0; i < sortedStages.length - 1; i++) {
-        assert(sortedStages[i].endTime.isAfter(sortedStages[i + 1].startTime));
+        assert(sortedStages[i].endTime.compareTo(sortedStages[i + 1].startTime) <= 0,
+            'Sleep stages cannot overlap');
       }
-      assert(!sortedStages.first.startTime.isBefore(startTime));
-      assert(!sortedStages.last.endTime.isAfter(endTime));
+      assert(sortedStages.first.startTime.compareTo(startTime) >= 0,
+          'First stage cannot start before session start');
+      assert(sortedStages.last.endTime.compareTo(endTime) <= 0,
+          'Last stage cannot end after session end');
     }
   }
 
@@ -133,13 +136,14 @@ class SleepStage {
     };
   }
 
-  static SleepStage fromMap(Map<String, dynamic> map) {
+  static SleepStage fromMap(dynamic mapData) {
+    final map = Map<String, dynamic>.from(mapData);
     return SleepStage(
-      startTime: DateTime.fromMillisecondsSinceEpoch(map['startTime']),
-      endTime: DateTime.fromMillisecondsSinceEpoch(map['endTime']),
-      type: (map['type'] != null &&
-              map['type'] as int < SleepStageType.values.length)
-          ? SleepStageType.values[map['type'] as int]
+      startTime: DateTime.parse(map['startTime']),
+      endTime: DateTime.parse(map['endTime']),
+      type: (map['stage'] != null &&
+              map['stage'] as int < SleepStageType.values.length)
+          ? SleepStageType.values[map['stage'] as int]
           : SleepStageType.unknown,
     );
   }
